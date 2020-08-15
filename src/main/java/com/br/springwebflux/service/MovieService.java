@@ -31,10 +31,29 @@ public class MovieService {
         return movieRepository.findMovieByTitle(title);
     }
 
+    public Mono<Movie> save(Movie movie) {
+        return movieRepository.save(movie);
+    }
+
+    public Mono<Void> update(Movie movie) {
+        return findById(movie.getId())
+                .flatMap(movieRepository::save).then();
+
+    }
+
+    public Mono<Void> delete(Long id) {
+        return findById(id)
+                .switchIfEmpty(monoResponseStatusNotFoundException())
+                .flatMap(movieRepository::delete)
+                ;
+    }
+
 
     public <T> Mono<T> monoResponseStatusNotFoundException(){
         return Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND,"movie not found"));
     }
+
+
 
 
 }
