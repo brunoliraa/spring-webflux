@@ -10,7 +10,7 @@ public class SpringWebfluxApplication {
 //    static{
 //        BlockHound.install();
 //    }
-    
+
     public static void main(String[] args) {
         SpringApplication.run(SpringWebfluxApplication.class, args);
     }
