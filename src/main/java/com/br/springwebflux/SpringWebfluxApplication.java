@@ -11,6 +11,8 @@ public class SpringWebfluxApplication {
 //    static {
 //        BlockHound.install(
 //                builder -> builder.allowBlockingCallsInside("java.util.UUID", "randomUUID")
+//                        .allowBlockingCallsInside("java.io.FilterInputStream", "read")
+//                        .allowBlockingCallsInside("java.io.InputStream", "readNBytes")
 //        );
 //    }
 
