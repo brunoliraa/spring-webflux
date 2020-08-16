@@ -5,6 +5,8 @@ import com.br.springwebflux.model.Movie;
 import com.br.springwebflux.repository.MovieRepository;
 import com.br.springwebflux.service.MovieService;
 import com.br.springwebflux.util.MovieCreator;
+
+import java.util.Arrays;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
@@ -17,7 +19,9 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -31,8 +35,11 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @ExtendWith(SpringExtension.class)
-@WebFluxTest //vai inicializar o conteúdo relacionado ao webflux
-@Import({MovieService.class, CustomAttributes.class})
+//@WebFluxTest //vai inicializar o conteúdo relacionado ao webflux
+//@Import({MovieService.class, CustomAttributes.class})
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
 public class MovieControllerIntegration {
 
     @MockBean
@@ -44,10 +51,12 @@ public class MovieControllerIntegration {
 
     private final Movie movie = MovieCreator.createValidMovie();
 
-    @BeforeAll
-    public static void blockHoundSetup() {
-        BlockHound.install();
-    }
+//    @BeforeAll
+//    public static void blockHoundSetup() {
+//        BlockHound.install(
+//                builder -> builder.allowBlockingCallsInside("java.util.UUID", "randomUUID")
+//        );
+//    }
 
     @Test
     public void blockHoundWorks() {
@@ -75,6 +84,10 @@ public class MovieControllerIntegration {
 
         BDDMockito.when(movieRepositoryMock.save(MovieCreator.createMovieToSave()))
                 .thenReturn(Mono.just(movie));
+
+        BDDMockito.when(movieRepositoryMock
+                .saveAll(Arrays.asList(MovieCreator.createMovieToSave(), MovieCreator.createMovieToSave())))
+                .thenReturn(Flux.just(movie, movie));
 
         BDDMockito.when(movieRepositoryMock.delete(ArgumentMatchers.any(Movie.class)))
                 .thenReturn(Mono.empty());
@@ -170,6 +183,43 @@ public class MovieControllerIntegration {
                 .expectBody()
                 .jsonPath("$.status").isEqualTo(400);
 
+    }
+
+    @Test
+    @DisplayName("saveBatch creates a list of movies when successful")
+    public void saveBatch_CreatesListOfMovie_WhenSuccessful() {
+        Movie movieToSave = MovieCreator.createMovieToSave();
+
+        testClient
+                .post()
+                .uri("/movies/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(Arrays.asList(movieToSave, movieToSave)))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBodyList(Movie.class)
+                .hasSize(2)
+                .contains(movie);
+    }
+
+    @Test
+    @DisplayName("saveBatch returns Mono error when one of the objects in the list contains empty or null name")
+    public void saveBatch_ReturnsMonoError_WhenContainsInvalidName() {
+        Movie movieToSave = MovieCreator.createMovieToSave();
+
+        BDDMockito.when(movieRepositoryMock
+                .saveAll(ArgumentMatchers.anyIterable()))
+                .thenReturn(Flux.just(movie, movie.withTitle("")));
+
+        testClient
+                .post()
+                .uri("/movies/batch")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(Arrays.asList(movieToSave, movieToSave)))
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(400);
     }
 
     @Test

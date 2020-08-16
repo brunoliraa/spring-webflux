@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+import java.util.Arrays;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
@@ -70,6 +71,9 @@ class MovieControllerTest {
 
         BDDMockito.when(movieServiceMock.save(MovieCreator.createMovieToSave()))
                 .thenReturn(Mono.just(movie));
+        BDDMockito.when(movieServiceMock
+                .saveAll(Arrays.asList(MovieCreator.createMovieToSave(), MovieCreator.createMovieToSave())))
+                .thenReturn(Flux.just(movie, movie));
 
         BDDMockito.when(movieServiceMock.delete(ArgumentMatchers.anyLong()))
                 .thenReturn(Mono.empty());
@@ -105,6 +109,17 @@ class MovieControllerTest {
         StepVerifier.create(movieController.save(movieToSave))
                 .expectSubscription()
                 .expectNext(movie)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("saveBatch creates a list of movie when successful")
+    public void saveBatch_CreatesListOfMovie_WhenSuccessful() {
+        Movie movieToSave = MovieCreator.createMovieToSave();
+
+        StepVerifier.create(movieController.saveBatch(Arrays.asList(movieToSave, movieToSave)))
+                .expectSubscription()
+                .expectNext(movie, movie)
                 .verifyComplete();
     }
 

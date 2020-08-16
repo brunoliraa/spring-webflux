@@ -2,6 +2,10 @@ package com.br.springwebflux.service;
 
 import com.br.springwebflux.model.Movie;
 import com.br.springwebflux.repository.MovieRepository;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +77,9 @@ class MovieServiceTest {
 
         BDDMockito.when(movieRepositoryMock.save(MovieCreator.createMovieToSave()))
                 .thenReturn(Mono.just(movie));
+        BDDMockito.when(movieRepositoryMock
+                .saveAll(Arrays.asList(MovieCreator.createMovieToSave(), MovieCreator.createMovieToSave())))
+                .thenReturn(Flux.just(movie, movie));
 
         BDDMockito.when(movieRepositoryMock.delete(ArgumentMatchers.any(Movie.class)))
                 .thenReturn(Mono.empty());
@@ -89,6 +96,7 @@ class MovieServiceTest {
                 .expectSubscription()
                 .expectNext(movie).
                 verifyComplete();
+
     }
 
     @Test
@@ -121,6 +129,33 @@ class MovieServiceTest {
                 .expectSubscription()
                 .expectNext(movie)
                 .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("saveAll creates a list of movies when successful")
+    public void saveAll_CreatesListOfMovies_WhenSuccessful() {
+        Movie movieToSave = MovieCreator.createMovieToSave();
+
+        StepVerifier.create(movieService.saveAll(Arrays.asList(movieToSave, movieToSave)))
+                .expectSubscription()
+                .expectNext(movie, movie)
+                .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("saveAll returns Mono error when one of the objects in the list contains empty or null title")
+    public void saveAll_ReturnsMonoError_WhenContainsInvalidTitle() {
+        Movie movieToSave = MovieCreator.createMovieToSave();
+
+        BDDMockito.when(movieRepositoryMock
+                .saveAll(ArgumentMatchers.anyIterable()))
+                .thenReturn(Flux.just(movie, movie.withTitle("")));
+
+        StepVerifier.create(movieService.saveAll(Arrays.asList(movieToSave, movieToSave.withTitle(""))))
+                .expectSubscription()
+                .expectNext(movie)
+                .expectError(ResponseStatusException.class)
+                .verify();
     }
 
     @Test
