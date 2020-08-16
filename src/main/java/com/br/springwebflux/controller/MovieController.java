@@ -23,16 +23,18 @@ public class MovieController {
     private final MovieService movieService;
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public Flux<Movie> findAll(){
         return movieService.findAll();
     }
 
     @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public Mono<Movie> findById(@PathVariable Long id){
         return movieService.findById(id);
 
     }
-
+    @ResponseStatus(HttpStatus.OK)
     @GetMapping("/title/{title}")
     public Mono<Movie> findByTitle(@PathVariable  String title){
         return movieService.findByTitle(title);
