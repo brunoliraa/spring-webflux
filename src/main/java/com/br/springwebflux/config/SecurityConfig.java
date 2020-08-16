@@ -27,6 +27,8 @@ public class SecurityConfig {
                 .csrf().disable()
                 .authorizeExchange()
                 .pathMatchers(HttpMethod.POST, "/movies/**").hasRole("ADMIN")
+                .pathMatchers(HttpMethod.PUT, "/movies/**").hasRole("ADMIN")
+                .pathMatchers(HttpMethod.DELETE, "/movies/**").hasRole("ADMIN")
                 .pathMatchers(HttpMethod.GET, "/movies/**").hasRole("USER")
                 .anyExchange().authenticated()
                 .and()

@@ -1,34 +1,28 @@
 package com.br.springwebflux.integration;
 
-import com.br.springwebflux.exception.CustomAttributes;
 import com.br.springwebflux.model.Movie;
 import com.br.springwebflux.repository.MovieRepository;
-import com.br.springwebflux.service.MovieService;
 import com.br.springwebflux.util.MovieCreator;
 
 import java.util.Arrays;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.BDDMockito;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
-import reactor.blockhound.BlockHound;
 import reactor.blockhound.BlockingOperationError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,6 +35,10 @@ import reactor.core.scheduler.Schedulers;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 public class MovieControllerIntegration {
+
+    private static final String ADMIN_USER = "admin";
+    private static final String REGULAR_USER = "user";
+
 
     @MockBean
     private MovieRepository movieRepositoryMock;
@@ -97,10 +95,13 @@ public class MovieControllerIntegration {
 
     }
 
+
+
     //ResponseSpec é tipo o ResponseEntity
     @Test
-    @DisplayName("listAll returns a flux of movie")
-    public void listAll_Flavor2_ReturnFluxOfMovie_WhenSuccessful() {
+    @DisplayName("listAll returns a flux of movie when user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
+    public void listAll_ReturnFluxOfMovie_WhenSuccessful() {
         testClient
                 .get()
                 .uri("/movies")
@@ -112,8 +113,9 @@ public class MovieControllerIntegration {
     }
     //outra forma de fazer o ListAll
     @Test
-    @DisplayName("listAll returns a flux of movie")
-    public void listAll_ReturnFluxOfMovie_WhenSuccessful() {
+    @DisplayName("listAll returns a flux of movie when user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
+    public void listAll_Flavor2_ReturnFluxOfMovie_WhenSuccessful() {
         testClient
                 .get()
                 .uri("/movies")
@@ -125,7 +127,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("findById returns a Mono with movie when it exists")
+    @DisplayName("findById returns a Mono with movie when it exists and user is successfully authenticated and has role USER")
+    @WithUserDetails(REGULAR_USER)
     public void findById_ReturnMonoMovie_WhenSuccessful() {
         testClient
                 .get()
@@ -137,7 +140,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("findById returns Mono error when movie does not exist")
+    @DisplayName("findById returns Mono error when movie does not exist and user is successfully authenticated and has role USER")
+    @WithUserDetails(REGULAR_USER)
     public void findById_ReturnMonoError_WhenEmptyMonoIsReturned() {
         BDDMockito.when(movieRepositoryMock.findById(ArgumentMatchers.anyLong()))
                 .thenReturn(Mono.empty());
@@ -153,7 +157,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("save creates an movie when successful")
+    @DisplayName("save creates an movie when successful and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void save_CreatesMovie_WhenSuccessful() {
         Movie movieToSave = MovieCreator.createMovieToSave();
 
@@ -169,7 +174,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("save returns mono error with bad request when title is empty")
+    @DisplayName("save returns mono error with bad request when title is empty and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void save_ReturnsError_WhenTitleIsEmpty() {
         Movie movieToSave = MovieCreator.createMovieToSave().withTitle("");
 
@@ -186,7 +192,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("saveBatch creates a list of movies when successful")
+    @DisplayName("saveBatch creates a list of movies when successful and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void saveBatch_CreatesListOfMovie_WhenSuccessful() {
         Movie movieToSave = MovieCreator.createMovieToSave();
 
@@ -203,7 +210,9 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("saveBatch returns Mono error when one of the objects in the list contains empty or null name")
+    @DisplayName("saveBatch returns Mono error when one of the objects in the list contains empty or null" +
+            " name and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void saveBatch_ReturnsMonoError_WhenContainsInvalidName() {
         Movie movieToSave = MovieCreator.createMovieToSave();
 
@@ -223,7 +232,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("delete removes the movie when successful")
+    @DisplayName("delete removes the movie when successful and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void delete_RemovesMovie_WhenSuccessful() {
         testClient
                 .delete()
@@ -233,7 +243,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("delete returns Mono error when movie does not exist")
+    @DisplayName("delete returns Mono error when movie does not exist and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void delete_ReturnMonoError_WhenEmptyMonoIsReturned() {
         BDDMockito.when(movieRepositoryMock.findById(ArgumentMatchers.anyLong()))
                 .thenReturn(Mono.empty());
@@ -249,7 +260,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("update save updated movie and returns empty mono when successful")
+    @DisplayName("update save updated movie and returns empty mono when successful and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void update_SaveUpdatedMovie_WhenSuccessful() {
         testClient
                 .put()
@@ -261,7 +273,8 @@ public class MovieControllerIntegration {
     }
 
     @Test
-    @DisplayName("update returns Mono error when movie does not exist")
+    @DisplayName("update returns Mono error when movie does not exist and user is successfully authenticated and has role ADMIN")
+    @WithUserDetails(ADMIN_USER)
     public void update_ReturnMonoError_WhenEmptyMonoIsReturned() {
         BDDMockito.when(movieRepositoryMock.findById(ArgumentMatchers.anyLong()))
                 .thenReturn(Mono.empty());
